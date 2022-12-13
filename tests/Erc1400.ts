@@ -1,9 +1,8 @@
-import { time, loadFixture, impersonateAccount } from "@nomicfoundation/hardhat-network-helpers";
-import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
+import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { BigNumber, providers, Signer } from "ethers";
-import setupCompound, { partition1, partition2, partition3, register1820IfNotDoneYet } from "./Helper";
+import { BigNumber } from "ethers";
+import { partition1, partition2, partition3, register1820IfNotDoneYet } from "./Helper";
 
 describe("ERC1400", async function () {
 
@@ -12,11 +11,8 @@ describe("ERC1400", async function () {
   });
 
   async function deployAapl() {
-
-
     const partitions = [partition1, partition2, partition3];
     const [deployer, investor1, investor2, notAnInvestor] = await ethers.getSigners();
-
 
     // deploy ERC1400 token [sAAPL]
     const Erc1400 = await ethers.getContractFactory("ERC1400");
@@ -24,14 +20,8 @@ describe("ERC1400", async function () {
     const aaplToken = await Erc1400.deploy("Apple INC NASDAQ:AAPL", "sAAPL", 1, [deployer.address], partitions);
     await aaplToken.deployed();
 
-
-
-    console.log(`aapl deployed to: ${aaplToken.address}`);
-
     (await aaplToken.issue(investor1.address, 1000, "0x")).wait();
     (await aaplToken.issue(investor2.address, 1000, "0x")).wait();
-
-
 
     return { aaplToken, deployer, investor1, investor2, notAnInvestor };
   }

@@ -18,12 +18,10 @@ export async function printBalanceForAllPartitions(erc1400: ERC1400, address: st
 
     console.log(`Total Balances: ${address}: ${await erc1400.balanceOf(address)} ${await erc1400.name()}`)
     const balanceFree = await erc1400.balanceOfByPartition(partition1, address);
-    const balanceP2 = await erc1400.balanceOfByPartition(partition2, address);
     const balanceLocked = await erc1400.balanceOfByPartition(partition3, address);
 
-    console.log({ balanceP1: balanceFree })
-    console.log({ balanceP2 })
-    console.log({ balanceP3: balanceLocked })
+    console.log({ balanceFree })
+    console.log({ balanceLocked })
 };
 
 
@@ -60,11 +58,11 @@ export async function register1820IfNotDoneYet(verbose:boolean = false) {
 
 }
 
+// Returns a compound with 2 markets
 async function setupCompound(verbose = false) {
 
     // deploy registery 0x1820 in local chain
-
-
+    register1820IfNotDoneYet(verbose);
 
     const partition1 = '0x7265736572766564000000000000000000000000000000000000000000000000'; // reserved in hex
     const partition2 = '0x6973737565640000000000000000000000000000000000000000000000000000'; // issued in hex
@@ -75,14 +73,13 @@ async function setupCompound(verbose = false) {
     const [deployer] = await ethers.getSigners();
 
 
-    register1820IfNotDoneYet(verbose);
 
     // deploy ERC1400 token [sAAPL]
 
     const Erc1400 = await ethers.getContractFactory("ERC1400")
-    const aaplToken = await Erc1400.deploy("Apple INC NASDAQ:AAPL", "sAAPL", 1, [deployer.address], partitions);
-    await aaplToken.deployed();
-    verbose ?? console.log(`aapl deployed to: ${aaplToken.address}`)
+    const aapl = await Erc1400.deploy("Apple INC NASDAQ:AAPL", "sAAPL", 1, [deployer.address], partitions);
+    await aapl.deployed();
+    verbose ?? console.log(`aapl deployed to: ${aapl.address}`)
 
 
     // deploy ERC20 token [USDC]
@@ -233,7 +230,7 @@ async function setupCompound(verbose = false) {
 
     const CErc1400Delegator = await ethers.getContractFactory("CErc1400Delegator");
     const cAAPL = await CErc1400Delegator.deploy(
-        aaplToken.address,
+        aapl.address,
         unitroller.address,
         jumpratemodelV2.address,
         ethers.utils.parseEther("1.0"),
@@ -297,11 +294,11 @@ async function setupCompound(verbose = false) {
 
 
     // set cAAPL contract controller of partition `locked`
-    const setPartitionControllersTx = await aaplToken.setPartitionControllers(ethers.utils.formatBytes32String("locked"), [cAAPL.address]);
+    const setPartitionControllersTx = await aapl.setPartitionControllers(ethers.utils.formatBytes32String("locked"), [cAAPL.address]);
     await setPartitionControllersTx.wait();
 
 
-    return { unitAsComp, unitroller, comptroller, aaplToken, usdc, cAAPLdelegator: cAAPL, cUSDC }
+    return { unitAsComp, unitroller, comptroller, aapl, usdc, cAAPL, cUSDC }
 }
 
 export default setupCompound;

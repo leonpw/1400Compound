@@ -20,11 +20,11 @@ describe("Locking and Unlocking of ERC1400", async function () {
     before(async function () {
 
         const newLocal = await loadFixture(setupCompound);
-        aapl = newLocal.aaplToken;
-        cAAPL = newLocal.cAAPLdelegator;
+        aapl = newLocal.aapl;
+        usdc = newLocal.usdc;
+        cAAPL = newLocal.cAAPL;
         cUSDC = newLocal.cUSDC;
         unitAsComp = newLocal.unitAsComp;
-        usdc = newLocal.usdc;
     });
 
 
@@ -41,8 +41,8 @@ describe("Locking and Unlocking of ERC1400", async function () {
 
 
         // controller can access ALL tokens in partition
-        const setPartitionControllersTx = await aapl.setPartitionControllers(ethers.utils.formatBytes32String("locked"), [operator.address]);
-        await setPartitionControllersTx.wait();
+        await (await aapl.
+            setPartitionControllers(partition3, [operator.address])).wait();
 
 
 
@@ -64,7 +64,6 @@ describe("Locking and Unlocking of ERC1400", async function () {
         );
 
         const lockTxConfirmed = await lockTx.wait();
-        // lockTxConfirmed.logs.map((event) => console.log({ event }))
 
         console.log(`Balances after locking tokens`);
         await printBalanceForAllPartitions(aapl, investor1.address);

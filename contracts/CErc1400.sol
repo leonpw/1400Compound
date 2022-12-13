@@ -19,8 +19,8 @@ interface CompLike {
 contract CErc1400 is CToken, CErc1400Interface {
 
     bytes32 public constant moveTo = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
-    bytes32 public constant locked = 0x6c6f636b65640000000000000000000000000000000000000000000000000000; // P3
-    bytes32 public constant partition1 = 0x7265736572766564000000000000000000000000000000000000000000000000; // reserved in hex
+    bytes32 public constant locked = 0x6c6f636b65640000000000000000000000000000000000000000000000000000; // partition 3, locked
+    bytes32 public constant partition1 = 0x7265736572766564000000000000000000000000000000000000000000000000; // default partition
     
     /**
      * @notice Initialize the new money market
@@ -163,19 +163,12 @@ contract CErc1400 is CToken, CErc1400Interface {
     }
 
     /**
-     * @dev Similar to EIP20 transfer, except it handles a False result from `transferFrom` and reverts in that case.
-     *      This will revert due to insufficient balance or insufficient allowance.
-     *      This function returns the actual amount received,
-     *      which may be less than `amount` if there is a fee attached to the transfer.
-     *
-     *      Note: This wrapper safely handles non-standard ERC-1400 tokens that do not return a value.
-     *            See here: https://medium.com/coinmonks/missing-return-value-bug-at-least-130-tokens-affected-d67bf08521ca
+     * @dev Locks the ERC1400 tokens in the partition 'locked'. The user cannot move the tokens anymore.
      */
     function doTransferIn(address from, uint amount) virtual override internal returns (uint) {
         // Read from storage once
         address underlying_ = underlying;
         
-       
         uint256 balanceBefore = EIP1400Interface(underlying_).balanceOfByPartition(locked, from);
       
         EIP1400Interface(underlying_).operatorTransferByPartition(
@@ -187,27 +180,16 @@ contract CErc1400 is CToken, CErc1400Interface {
             abi.encode(1)
         );
 
-
-        // Calculate the amount that was *actually* transferred
         uint256 balanceAfter = EIP1400Interface(underlying_).balanceOfByPartition(locked, from);
-    
-        return balanceAfter - balanceBefore;   // underflow already checked above, just subtract
+        return balanceAfter - balanceBefore;   
     }
 
     /**
-     * @dev Similar to EIP20 transfer, except it handles a False success from `transfer` and returns an explanatory
-     *      error code rather than reverting. If caller has not called checked protocol's balance, this may revert due to
-     *      insufficient cash held in this contract. If caller has checked protocol's balance prior to this call, and verified
-     *      it is >= amount, this should not revert in normal conditions.
-     *
-     *      Note: This wrapper safely handles non-standard ERC-1400 tokens that do not return a value.
-     *            See here: https://medium.com/coinmonks/missing-return-value-bug-at-least-130-tokens-affected-d67bf08521ca
+     * @dev Unlocks the ERC1400 tokens. Moves the tokens from partition 'locked' to partition1. Locked tokens cannot be transfered.
      */
     function doTransferOut(address payable to, uint amount) virtual override internal {
     
        address underlying_ = underlying;
-        
-       
       
         bytes32 destinationPartition = EIP1400Interface(underlying_).operatorTransferByPartition(
             locked,
